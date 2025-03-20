@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+{% block title %}Введение данных{% endblock title %}
+{% block content %}
+    <div class="row"> <!-- Bootstrap: Создание списка файлов -->
+        <div class="col-md-12">
+            <h2>Список файлов</h2>
+            <div class="list-group">
+                {% for field in answer %}
+                    <div class="list-group-item d-flex align-items-center justify-content-between">
+                        <!-- Bootstrap: Элемент списка -->
+                        <div class="d-flex align-items-center">
+                            <img src="{{ field.link }}"
+                                 alt="Файл" class="me-3" style="width: 50px; height: 50px;"> <!-- Изображение файла -->
+                            <span>{{ field.name }}</span> <!-- Название файла -->
+                        </div>
+                        <a href="{{ field.download_link }}">Скачать</a> <!-- Кнопка скачивания -->
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    сделать здесь форму, которая будет как на основной странице
+    можно докачивать файл
+
+{% endblock content %}
+
