@@ -1,5 +1,6 @@
 from django.shortcuts import render
-from django.http import JsonResponse,HttpRequest
+from django.http import JsonResponse, HttpRequest
+from django.views.decorators.http import require_http_methods
 import requests as http_requests
 from .forms import DiskLink
 
@@ -7,6 +8,15 @@ my_oauth = "y0__xCUtv6zBBjblgMg8q73yxJz1nS4i89l071n_AhTa5fV9oMdhg"
 get_items = "https://cloud-api.yandex.net/v1/disk/public/resources?public_key="
 download_link = f"https://cloud-api.yandex.net/v1/disk/public/resources/download?public_key="
 
+MIME_CATEGORIES_READABLE = {
+    "Без фильтров": "",
+    "Текстовые файлы": "text",
+    "Изображения": "image",
+    "Аудио файлы": "audio",
+    "Видео файлы": "video",
+    "Документы и архивы": "application",
+    "Шрифты": "font"
+}
 
 
 def process_link(request: HttpRequest):
@@ -14,6 +24,7 @@ def process_link(request: HttpRequest):
     return render(request, "index.html", {"form": form})
 
 
+@require_http_methods(["POST"])
 def check_link(request: HttpRequest):
     """
     Обращается к публичной ссылке для доступа к диску
@@ -26,7 +37,28 @@ def check_link(request: HttpRequest):
         return render(request, "index.html", {"form": form})
     if "error" in output_list:
         return render(request, "index.html", {"form": form, "errors": output_list})
-    return render(request, "template_with_answer.html", {"answer": output_list, 'form': form, "public_key": public_key})
+    return render(request, "template_with_answer.html", {"answer": output_list,
+                                                         "public_key": public_key,
+                                                         "filters": MIME_CATEGORIES_READABLE})
+
+
+@require_http_methods(["GET"])
+def change_directory(request: HttpRequest):
+    """
+    Позволяет переходить по папкам меня папки
+    """
+    public_key = request.GET.get("public_key", "")
+    path = request.GET.get("path", "")
+    type_filter = request.GET.get("filter", "")
+    dict_to_return = get_dict_from_link(public_key, path, type_filter)
+    old_path = path[:path.rfind("/")]
+    return render(request, "template_with_answer.html",
+                  {"answer": dict_to_return,
+                   "public_key": public_key,
+                   "path": path,
+                   "old_path": old_path,
+                   "filters": MIME_CATEGORIES_READABLE,
+                   "filter": type_filter})
 
 
 def get_link(request: HttpRequest, link: str):
@@ -37,18 +69,7 @@ def get_link(request: HttpRequest, link: str):
     return JsonResponse(http_requests.get(link).json())
 
 
-def change_directory(request: HttpRequest):
-    """
-    Позволяет переходить по папкам меня папки
-    """
-    public_key = request.GET.get("public_key", "")
-    path = request.GET.get("path", "")
-    dict_to_return = get_dict_from_link(public_key, path)
-    old_path = path[:path.rfind("/")]
-    return render(request, "template_with_answer.html", {"answer": dict_to_return, "public_key": public_key, "path": path, "old_path": old_path})
-
-
-def get_dict_from_link(public_key: str, path: str =""):
+def get_dict_from_link(public_key: str, path: str = "", type_filter: str = ""):
     """
     Делает запрос к яндекс диску с указанием пути, путь нужен, для того чтобы открывать папки
     """
@@ -60,6 +81,8 @@ def get_dict_from_link(public_key: str, path: str =""):
     output_list = list()
     process_response = response.json()
     for item in process_response.get("_embedded", {}).get("items", {}):
+        if item.get("mime_type", False) and not item.get("mime_type").startswith(type_filter):
+            continue
         download_link = f"{public_key}&path={item.get('path')}"
         if item.get("sizes", False):
             output_list.append(
@@ -75,3 +98,4 @@ def get_dict_from_link(public_key: str, path: str =""):
                                 "type": item.get("type"),
                                 "path": item.get("path")})
     return output_list
+

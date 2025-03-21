@@ -29,7 +29,7 @@
                             <span>{{ field.name }} {{ field.path }}</span>
                         </div>
                         <button class="fetchButton" data-link="{{ field.download_link }}">Скачать файл</button>
-                        <a href="{% url 'change_directory' %}?public_key={{ public_key }}&path={{ field.path }}">
+                        <a href="{% url 'change_directory' %}?public_key={{ public_key }}&path={{ field.path }}&filer={{ filter }}">
                             <button>Перейти</button>
                         </a>
                     </div>
@@ -38,7 +38,6 @@
         </div>
     </div>
 
-
     <script>
         document.querySelectorAll("[data-link]").forEach(button => {
                 button.onclick = async function (event) {
@@ -46,11 +45,9 @@
                     let link = button.dataset.link;
                     let response = await fetch(`/get_link/${link}`);
                     const data = await response.json();
-
                     if (data.href) {
                         let a = document.createElement("a");
                         a.href = data.href;
-                        {#a.target = "_blank"; // Открытие в новой вкладке#}
                         document.body.appendChild(a);
                         a.click();
                         document.body.removeChild(a);
@@ -58,7 +55,10 @@
                 }
             }
         )
-
+        document.getElementById("filters").addEventListener("change", function () {
+            window.location.href = "http://localhost:8000/change_directory/" + "?public_key={{ public_key }}" + "&filter="+this.value;
+        });
+        document.getElementById("filters").value = "{{filter}}"; 
     </script>
 
 {% endblock content %}
