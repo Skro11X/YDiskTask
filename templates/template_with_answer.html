@@ -1,26 +1,65 @@
 {% extends 'base.html' %}
+{% load static %}
 {% block title %}Введение данных{% endblock title %}
 {% block content %}
     <div class="row"> <!-- Bootstrap: Создание списка файлов -->
         <div class="col-md-12">
             <h2>Список файлов</h2>
-            <div class="list-group">
+            <div class="list-group" id="main-list">
+                {% if path %}
+                    <a href="{% url 'change_directory' %}?public_key={{ public_key }}&path={{ old_path }}">
+                        <button>Назад{{ path }}</button>
+                    </a>
+                {% endif %}
                 {% for field in answer %}
                     <div class="list-group-item d-flex align-items-center justify-content-between">
-                        <!-- Bootstrap: Элемент списка -->
                         <div class="d-flex align-items-center">
-                            <img src="{{ field.link }}"
-                                 alt="Файл" class="me-3" style="width: 50px; height: 50px;"> <!-- Изображение файла -->
-                            <span>{{ field.name }}</span> <!-- Название файла -->
+                            {% if field.type == "file" %}
+                                <img src="{{ field.link }}"
+                                     alt="Файл"
+                                     class="me-3"
+                                     style="width: 50px; height: 50px;"
+                                     onerror="this.src='{% static 'file.jpg' %}'">
+                            {% else %}
+                                <img src="{% static "dir.png" %}"
+                                     alt="Файл" class="me-3"
+                                     style="width: 50px; height: 50px;"
+                                >
+                            {% endif %}
+                            <span>{{ field.name }} {{ field.path }}</span>
                         </div>
-                        <a href="{{ field.download_link }}">Скачать</a> <!-- Кнопка скачивания -->
+                        <button class="fetchButton" data-link="{{ field.download_link }}">Скачать файл</button>
+                        <a href="{% url 'change_directory' %}?public_key={{ public_key }}&path={{ field.path }}">
+                            <button>Перейти</button>
+                        </a>
                     </div>
                 {% endfor %}
             </div>
         </div>
     </div>
-    сделать здесь форму, которая будет как на основной странице
-    можно докачивать файл
+
+
+    <script>
+        document.querySelectorAll("[data-link]").forEach(button => {
+                button.onclick = async function (event) {
+                    let button = event.target;
+                    let link = button.dataset.link;
+                    let response = await fetch(`/get_link/${link}`);
+                    const data = await response.json();
+
+                    if (data.href) {
+                        let a = document.createElement("a");
+                        a.href = data.href;
+                        {#a.target = "_blank"; // Открытие в новой вкладке#}
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                    }
+                }
+            }
+        )
+
+    </script>
 
 {% endblock content %}
 
