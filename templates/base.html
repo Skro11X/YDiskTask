@@ -12,10 +12,10 @@
 <header class="bg-primary text-white p-3">
     <div class="container">
         {% if form %}
-            <form action="/check_disk/" method="post">
+            <form action="{% url 'yandex_disk_api' %}" method="get">
                 {% csrf_token %}
                 {{ form.as_div }}
-                <button type="submit" class="btn btn-primary">Отправить</button>
+                <button type="submit" class="btn btn-primary w-100 ">Отправить</button>
             </form>
             {% if form.name.errors %}
                 <div class="text-danger">
@@ -26,18 +26,18 @@
             {% endif %}
         {% else %}
             <a href="/">
-                <button>Ввести ссылку заново</button>
+                <button class="btn btn-primary w-100 ">Ввести ссылку заново</button>
             </a>
         {% endif %}
-        {% if filters %}
-            <label for="filters"></label>
-            <select id="filters" name="filter">
-            {% for key, value in filters.items %}
-                <option value="{{ value }}">{{ key }}</option>
-            {% endfor %}
-            </select>
-        {% endif %}
     </div>
+{% if errors %}
+        <div class="container mt-3">
+            <div class="alert alert-danger" role="alert">
+                <strong>{{ errors.error }}</strong><br>
+                {{ errors.details }}
+            </div>
+        </div>
+    {% endif %}
 </header>
 
 <main class="container">

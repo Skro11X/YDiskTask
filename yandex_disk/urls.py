@@ -1,10 +1,9 @@
 from django.urls import path
-from .views import process_link, check_link, get_link, change_directory
+from .views import process_link, check_link, get_link
 
 
 urlpatterns = [
     path('', process_link, name='process_link'),
-    path('check_disk/', check_link, name='check_link'),
+    path('yandex_disk_api/', check_link, name='yandex_disk_api'),
     path('get_link/<path:link>/', get_link, name='get_link'),
-    path('change_directory/', change_directory, name='change_directory'),
 ]

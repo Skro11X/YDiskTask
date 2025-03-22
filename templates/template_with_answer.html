@@ -2,13 +2,24 @@
 {% load static %}
 {% block title %}Введение данных{% endblock title %}
 {% block content %}
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
     <div class="row"> <!-- Bootstrap: Создание списка файлов -->
         <div class="col-md-12">
             <h2>Список файлов</h2>
+            {% if filters %}
+                <label for="filters"></label>
+                <select id="filters" class="form-select" data-public="{{ public_key }}" name="filter">
+                    {% for key, value in filters.items %}
+                        <option value="{{ value }}">{{ key }}</option>
+                    {% endfor %}
+                </select>
+            {% endif %}
             <div class="list-group" id="main-list">
                 {% if path %}
-                    <a href="{% url 'change_directory' %}?public_key={{ public_key }}&path={{ old_path }}">
-                        <button>Назад{{ path }}</button>
+                    <a href="{% url 'yandex_disk_api' %}?public_key={{ public_key }}&path={{ old_path }}" class="btn btn-secondary my-2">
+                        Назад{{ path }}
                     </a>
                 {% endif %}
                 {% for field in answer %}
@@ -17,21 +28,24 @@
                             {% if field.type == "file" %}
                                 <img src="{{ field.link }}"
                                      alt="Файл"
-                                     class="me-3"
+                                     class="me-3 img-thumbnail"
                                      style="width: 50px; height: 50px;"
                                      onerror="this.src='{% static 'file.jpg' %}'">
                             {% else %}
                                 <img src="{% static "dir.png" %}"
-                                     alt="Файл" class="me-3"
-                                     style="width: 50px; height: 50px;"
-                                >
+                                     alt="Файл" class="me-3 img-thumbnail"
+                                     style="width: 50px; height: 50px;">
                             {% endif %}
-                            <span>{{ field.name }} {{ field.path }}</span>
+                            <span>{{ field.name }}</span>
                         </div>
-                        <button class="fetchButton" data-link="{{ field.download_link }}">Скачать файл</button>
-                        <a href="{% url 'change_directory' %}?public_key={{ public_key }}&path={{ field.path }}&filer={{ filter }}">
-                            <button>Перейти</button>
-                        </a>
+                        <div>
+                            <button class="btn btn-primary fetchButton" data-link="{{ field.download_link }}">Скачать файл</button>
+                            {% if field.type == "dir" %}
+                                <a href="{% url 'yandex_disk_api' %}?public_key={{ public_key }}&path={{ field.path }}&filter={{ filter }}" class="btn btn-info">
+                                    Перейти
+                                </a>
+                            {% endif %}
+                        </div>
                     </div>
                 {% endfor %}
             </div>
@@ -56,10 +70,13 @@
             }
         )
         document.getElementById("filters").addEventListener("change", function () {
-            window.location.href = "http://localhost:8000/change_directory/" + "?public_key={{ public_key }}" + "&filter="+this.value;
+            const params = new URLSearchParams(window.location.search)
+            params.set("public_key", this.dataset.public)
+            params.delete("filter")
+            params.set("filter", this.value)
+            window.location.href = window.location.origin + "/yandex_disk_api/?" + params.toString();
         });
-        document.getElementById("filters").value = "{{filter}}"; 
+        document.getElementById("filters").value = "{{filter}}";
     </script>
 
 {% endblock content %}
-

@@ -15,42 +15,26 @@ MIME_CATEGORIES_READABLE = {
     "Аудио файлы": "audio",
     "Видео файлы": "video",
     "Документы и архивы": "application",
-    "Шрифты": "font"
 }
 
 
 def process_link(request: HttpRequest):
     form = DiskLink()
-    return render(request, "index.html", {"form": form})
-
-
-@require_http_methods(["POST"])
-def check_link(request: HttpRequest):
-    """
-    Обращается к публичной ссылке для доступа к диску
-    """
-    form = DiskLink(request.POST)
-    if form.is_valid():
-        public_key = form.cleaned_data["public_key"]
-        output_list = get_dict_from_link(public_key)
-    else:
-        return render(request, "index.html", {"form": form})
-    if "error" in output_list:
-        return render(request, "index.html", {"form": form, "errors": output_list})
-    return render(request, "template_with_answer.html", {"answer": output_list,
-                                                         "public_key": public_key,
-                                                         "filters": MIME_CATEGORIES_READABLE})
+    return render(request, "base.html", {"form": form})
 
 
 @require_http_methods(["GET"])
-def change_directory(request: HttpRequest):
+def check_link(request: HttpRequest):
     """
-    Позволяет переходить по папкам меня папки
+    Обращается к публичной ссылке для доступа к диску
     """
     public_key = request.GET.get("public_key", "")
     path = request.GET.get("path", "")
     type_filter = request.GET.get("filter", "")
     dict_to_return = get_dict_from_link(public_key, path, type_filter)
+    if "error" in dict_to_return:
+        form = DiskLink()
+        return render(request, "template_with_answer.html", {"form": form, "errors": dict_to_return})
     old_path = path[:path.rfind("/")]
     return render(request, "template_with_answer.html",
                   {"answer": dict_to_return,
@@ -75,7 +59,7 @@ def get_dict_from_link(public_key: str, path: str = "", type_filter: str = ""):
     """
     if path:
         path = "&path=" + path
-    response = http_requests.get(get_items + public_key + path, headers={"Authorization": f'Bearer {my_oauth}'})
+    response = http_requests.get(get_items + public_key + path + "&limit=100", headers={"Authorization": f'Bearer {my_oauth}'})
     if response.status_code != 200:
         return {"error": f"Ошибка API: {response.status_code}", "details": response.text}
     output_list = list()
