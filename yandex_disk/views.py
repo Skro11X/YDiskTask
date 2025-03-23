@@ -1,12 +1,14 @@
+import requests as http_requests
+import json
 from django.shortcuts import render
 from django.http import JsonResponse, HttpRequest
 from django.views.decorators.http import require_http_methods
-import requests as http_requests
+
 from .forms import DiskLink
 
 my_oauth = "y0__xCUtv6zBBjblgMg8q73yxJz1nS4i89l071n_AhTa5fV9oMdhg"
-get_items = "https://cloud-api.yandex.net/v1/disk/public/resources?public_key="
-download_link = f"https://cloud-api.yandex.net/v1/disk/public/resources/download?public_key="
+get_yandex_files_link = "https://cloud-api.yandex.net/v1/disk/public/resources?public_key="
+download_yandex_link = f"https://cloud-api.yandex.net/v1/disk/public/resources/download?public_key="
 
 MIME_CATEGORIES_READABLE = {
     "Без фильтров": "",
@@ -45,12 +47,19 @@ def check_link(request: HttpRequest):
                    "filter": type_filter})
 
 
-def get_link(request: HttpRequest, link: str):
+def get_link(request: HttpRequest):
     """
     Осуществляет обращение к яндекс диску, чтобы получить у него ссылку для скачивания
     """
-    link = download_link + link
-    return JsonResponse(http_requests.get(link).json())
+    request_body = json.loads(request.body)
+    links = request_body.get("selected_files")
+    download_files_links = list()
+    if isinstance(links, str):
+        download_files_links.append(http_requests.get(download_yandex_link + links).json())
+    else:
+        for link in links:
+            download_files_links.append(http_requests.get(download_yandex_link + link).json())
+    return JsonResponse(download_files_links, safe=False)
 
 
 def get_dict_from_link(public_key: str, path: str = "", type_filter: str = ""):
@@ -59,7 +68,8 @@ def get_dict_from_link(public_key: str, path: str = "", type_filter: str = ""):
     """
     if path:
         path = "&path=" + path
-    response = http_requests.get(get_items + public_key + path + "&limit=100", headers={"Authorization": f'Bearer {my_oauth}'})
+    response = http_requests.get(get_yandex_files_link + public_key + path + "&limit=100",
+                                 headers={"Authorization": f'Bearer {my_oauth}'})
     if response.status_code != 200:
         return {"error": f"Ошибка API: {response.status_code}", "details": response.text}
     output_list = list()
@@ -82,4 +92,3 @@ def get_dict_from_link(public_key: str, path: str = "", type_filter: str = ""):
                                 "type": item.get("type"),
                                 "path": item.get("path")})
     return output_list
-

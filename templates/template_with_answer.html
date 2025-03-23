@@ -8,23 +8,31 @@
     <div class="row"> <!-- Bootstrap: Создание списка файлов -->
         <div class="col-md-12">
             <h2>Список файлов</h2>
-            {% if filters %}
-                <label for="filters"></label>
-                <select id="filters" class="form-select" data-public="{{ public_key }}" name="filter">
-                    {% for key, value in filters.items %}
-                        <option value="{{ value }}">{{ key }}</option>
-                    {% endfor %}
-                </select>
-            {% endif %}
-            <div class="list-group" id="main-list">
+
+            <select id="filters" class="form-select mt-1 mb-1" data-public="{{ public_key }}" name="filter">
+                {% for key, value in filters.items %}
+                    <option value="{{ value }}">{{ key }}</option>
+                {% endfor %}
+            </select>
+
+            <div class="d-flex gap-2 justify-content-between mt-1 mb-1">
+                <button class="btn btn-primary" id="multidownload" onclick="sendCheckboxData()">Скачать отмеченные файлы
+                </button>
                 {% if path %}
-                    <a href="{% url 'yandex_disk_api' %}?public_key={{ public_key }}&path={{ old_path }}" class="btn btn-secondary my-2">
-                        Назад{{ path }}
+                    <a href="{% url 'yandex_disk_api' %}?public_key={{ public_key }}&path={{ old_path }}"
+                       class="btn btn-secondary flex-grow-1">
+                        Вернуться в предыдущую папку
                     </a>
                 {% endif %}
+            </div>
+            <div class="list-group" id="main-list">
                 {% for field in answer %}
                     <div class="list-group-item d-flex align-items-center justify-content-between">
                         <div class="d-flex align-items-center">
+                            <div class="d-flex align-items-center me-3">
+                                <input name="checkbox_to_multidownload " type="checkbox" class="form-check-input"
+                                       value="{{ field.download_link }}">
+                            </div>
                             {% if field.type == "file" %}
                                 <img src="{{ field.link }}"
                                      alt="Файл"
@@ -38,10 +46,14 @@
                             {% endif %}
                             <span>{{ field.name }}</span>
                         </div>
-                        <div>
-                            <button class="btn btn-primary fetchButton" data-link="{{ field.download_link }}">Скачать файл</button>
+                        <div class="d-flex justify-content-center">
+                            <button class="btn btn-primary fetchButton me-3" data-link="{{ field.download_link }}">
+                                Скачать
+                                файл
+                            </button>
                             {% if field.type == "dir" %}
-                                <a href="{% url 'yandex_disk_api' %}?public_key={{ public_key }}&path={{ field.path }}&filter={{ filter }}" class="btn btn-info">
+                                <a href="{% url 'yandex_disk_api' %}?public_key={{ public_key }}&path={{ field.path }}&filter={{ filter }}"
+                                   class="btn btn-info me-3">
                                     Перейти
                                 </a>
                             {% endif %}
@@ -57,18 +69,20 @@
                 button.onclick = async function (event) {
                     let button = event.target;
                     let link = button.dataset.link;
-                    let response = await fetch(`/get_link/${link}`);
-                    const data = await response.json();
-                    if (data.href) {
-                        let a = document.createElement("a");
-                        a.href = data.href;
-                        document.body.appendChild(a);
-                        a.click();
-                        document.body.removeChild(a);
-                    }
+                    await fetch('/get_link/', {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            "X-CSRFToken": "{{ csrf_token }}"
+                        },
+                        body: JSON.stringify({selected_files: link})
+                    }).then(response => response.json())
+                        .then(data => downloadFiles(data))
+                        .catch(error => console.error("Ошибка:", error));
                 }
             }
         )
+
         document.getElementById("filters").addEventListener("change", function () {
             const params = new URLSearchParams(window.location.search)
             params.set("public_key", this.dataset.public)
@@ -77,6 +91,35 @@
             window.location.href = window.location.origin + "/yandex_disk_api/?" + params.toString();
         });
         document.getElementById("filters").value = "{{filter}}";
+
+        async function sendCheckboxData() {
+            let checkboxes = document.querySelectorAll('input[name="checkbox_to_multidownload"]:checked');
+            let selectedValues = Array.from(checkboxes).map(cb => cb.value);
+            fetch('/get_link/', {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": "{{ csrf_token }}"
+                },
+                body: JSON.stringify({selected_files: selectedValues})
+            }).then(response => response.json())
+                .then(data => downloadFiles(data))
+                .catch(error => console.error("Ошибка:", error));
+
+        }
+
+        async function downloadFiles(data) {
+            for (const link in data) {
+                if (data[link].href) {
+                    let a = document.createElement("a");
+                    a.href = data[link].href;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                }
+            }
+        }
     </script>
 
 {% endblock content %}
