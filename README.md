@@ -9,35 +9,13 @@
 ```sh
 git clone https://github.com/Skro11X/YDiskTask
 ```
-2. Установите python версии 3.12
-   
-   Windows:
-   
-   https://www.python.org/downloads/release/python-3128/
-   
-   Ubuntu:
 
+2. Создайте виртуальное окружение питона и активируйте его и скачайте зависимости.
 ```shell
-sudo apt-get install python3.11
-```
-
-3. Создайте виртуальное окружение питона и активируйте его и скачайте зависимости.
-
-Windows
-```shell
-python -m venv venv
-venv\Scripts\activate
 pip install -r pip install -r requirements.txt
  ```
 
-Ubuntu
-```shell
-python -m venv venv
-source venv/bin/activate
-pip install -r pip install -r requirements.txt
-```
-
-4. Запустить дефолтный сервер Django
+3. Запустить дефолтный сервер Django
 ```shell
 python manage.py runserver
 ```
