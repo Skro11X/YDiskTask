@@ -105,7 +105,6 @@
             }).then(response => response.json())
                 .then(data => downloadFiles(data))
                 .catch(error => console.error("Ошибка:", error));
-
         }
 
         async function downloadFiles(data) {

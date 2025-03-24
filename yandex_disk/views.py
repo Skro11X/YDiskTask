@@ -3,12 +3,12 @@ import json
 from django.shortcuts import render
 from django.http import JsonResponse, HttpRequest
 from django.views.decorators.http import require_http_methods
-
+from django.core.cache import cache
 from .forms import DiskLink
 
 my_oauth = "y0__xCUtv6zBBjblgMg8q73yxJz1nS4i89l071n_AhTa5fV9oMdhg"
 get_yandex_files_link = "https://cloud-api.yandex.net/v1/disk/public/resources?public_key="
-download_yandex_link = f"https://cloud-api.yandex.net/v1/disk/public/resources/download?public_key="
+download_yandex_link = "https://cloud-api.yandex.net/v1/disk/public/resources/download?public_key="
 
 MIME_CATEGORIES_READABLE = {
     "Без фильтров": "",
@@ -33,7 +33,7 @@ def check_link(request: HttpRequest):
     public_key = request.GET.get("public_key", "")
     path = request.GET.get("path", "")
     type_filter = request.GET.get("filter", "")
-    dict_to_return = get_dict_from_link(public_key, path, type_filter)
+    dict_to_return = cache.get_or_set(request.build_absolute_uri(), get_dict_from_link(public_key, path, type_filter), 600)
     if "error" in dict_to_return:
         form = DiskLink()
         return render(request, "template_with_answer.html", {"form": form, "errors": dict_to_return})
@@ -47,6 +47,7 @@ def check_link(request: HttpRequest):
                    "filter": type_filter})
 
 
+@require_http_methods(["POST"])
 def get_link(request: HttpRequest):
     """
     Осуществляет обращение к яндекс диску, чтобы получить у него ссылку для скачивания
